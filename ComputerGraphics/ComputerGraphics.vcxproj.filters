@@ -23,10 +23,19 @@
     <ClInclude Include="main.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cpp.hint" />
-    <None Include="shaders\shader.frag" />
-    <None Include="shaders\shader.vert" />
+    <None Include="shaders\shader.vert">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="cpp.hint">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="shaders\shader.frag">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
   </ItemGroup>
 </Project>
