@@ -35,6 +35,11 @@ void DestroyDebugUtilsMessengerEXT(
     VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
     const VkAllocationCallbacks* pAllocator);
 
+static float lastX;
+static float lastY;
+static float yaw;
+static float pitch;
+
 
 class HelloTriangleApplication {
 public:
@@ -82,7 +87,6 @@ private:
     VkPipeline graphicsPipeline;
     VkCommandPool commandPool;
     VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -102,16 +106,18 @@ private:
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-
     std::vector<VkCommandBuffer> commandBuffers;
 
     std::vector<VkSemaphore> imageAvailableSemaphore;
     std::vector<VkSemaphore> renderFinishedSemaphore;
     std::vector<VkFence> inFlightFences;
     std::vector<VkFence> imagesInFlight;
+
     size_t currentFrame = 0;
+    //манипуляция вращением камеры
+    glm::vec3 cameraPos = glm::vec3(2.0f, 0.0f, 2.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp = glm::vec3(0.0f, -1.0f, 0.0f);
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
@@ -130,8 +136,8 @@ private:
 
     struct Vertex {
         glm::vec3 pos;
-        //glm::vec3 color;
         glm::vec2 texCoord;
+        glm::vec3 normals;
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -142,29 +148,44 @@ private:
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
             // pos
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
             attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
             attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
-            // color
-            /*attributeDescriptions[1].binding = 0;
-            attributeDescriptions[1].location = 1;
-            attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-            attributeDescriptions[1].offset = offsetof(Vertex, color);*/
-
             // texture coordinates
             attributeDescriptions[1].binding = 0;
-            attributeDescriptions[1].location = 2;
+            attributeDescriptions[1].location = 1;
             attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
             attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
+
+            // normals
+            attributeDescriptions[2].binding = 0;
+            attributeDescriptions[2].location = 2;
+            attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[2].offset = offsetof(Vertex, normals);
 
             return attributeDescriptions;
         }
     };
+
+    struct Object {
+        alignas(16) glm::mat4 model;
+        std::vector<VkDescriptorSet> descriptorSets;
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<VkBuffer> lightUnifromBuffers;
+        std::vector<VkDeviceMemory> lightUniformBuffersMemory;
+
+        Object() {
+            model = glm::mat4(1.0f);
+        }
+    };
+
+    std::vector<Object> objects;
 
     struct UniformBufferObject {
         alignas(16) glm::mat4 model;
@@ -172,15 +193,24 @@ private:
         alignas(16) glm::mat4 proj;
     };
 
+    float lightIntensity = 50.0f;
+    glm::vec3 lightPosition = glm::vec3(5.0, 5.0f, 5.0f);
+
+    struct LightUBO {
+        alignas(16) float intensity;
+        alignas(16) glm::vec3 color;
+        alignas(16) glm::vec3 position;
+    };
+
     const float s = 1.0f;
 
     const std::vector<Vertex> vertices = {
-        {{-s, s, s}, {0.25f,0.0f}}, {{ s, s, s}, {0.5f, 0.0f}}, {{ s,-s, s}, {0.5f, 0.25f}}, {{-s,-s, s}, {0.25f,0.25f}}, // front
-        {{ s, s,-s}, {0.25f,0.5f}}, {{-s, s,-s}, {0.5f, 0.5f}}, {{-s,-s,-s}, {0.5f, 0.75f}}, {{ s,-s,-s}, {0.25f,0.75f}}, // back
-        {{-s, s,-s}, {0.25f,1.0f}}, {{ s, s,-s}, {0.5f, 1.0f}}, {{ s, s, s}, {0.5f, 0.75f}}, {{-s, s, s}, {0.25f,0.75f}}, // top
-        {{ s,-s,-s}, {0.5f, 0.5f}}, {{-s,-s,-s}, {0.25f,0.5f}}, {{-s,-s, s}, {0.25f,0.25f}}, {{ s,-s, s}, {0.5f, 0.25f}}, // bottom
-        {{-s, s,-s}, {0.5f, 1.0f}}, {{-s, s, s}, {0.75f,1.0f}}, {{-s,-s, s}, {0.75f,0.75f}}, {{-s,-s,-s}, {0.5f, 0.75f}}, // left
-        {{ s, s, s}, {0.0f, 1.0f}}, {{ s, s,-s}, {0.25f,1.0f}}, {{ s,-s,-s}, {0.25f,0.75f}}, {{ s,-s, s}, {0.0f, 0.75f}}, // right
+        {{-s, s, s}, {0.25f,0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s, s, s}, {0.5f, 0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, 0.0f,  1.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, 0.0f,  1.0f}}, // front
+        {{ s, s,-s}, {0.25f,0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s, s,-s}, {0.5f, 0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {0.0f, 0.0f, -1.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, {0.0f, 0.0f, -1.0f}}, // back
+        {{-s, s,-s}, {0.25f,1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s,-s}, {0.5f, 1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s, s}, {0.5f, 0.75f}, {0.0f, 1.0f,  0.0f}}, {{-s, s, s}, {0.25f,0.75f}, {0.0f, 1.0f,  0.0f}}, // top
+        {{ s,-s,-s}, {0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s,-s}, {0.25f,0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, -1.0f, 0.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, -1.0f, 0.0f}}, // bottom
+        {{-s, s,-s}, {0.5f, 1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s, s, s}, {0.75f,1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s, s}, {0.75f,0.75f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {-1.0f, 0.0f, 0.0f}}, // left
+        {{ s, s, s}, {0.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s, s,-s}, {0.25f,1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s, s}, {0.0f, 0.75f}, { 1.0f, 0.0f, 0.0f}}, // right
     };
 
     const std::vector<uint16_t> indices = {
@@ -218,6 +248,7 @@ private:
         createTextureSampler();
         createVertexBuffer();
         createIndexBuffer();
+        addObjects();
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -696,6 +727,13 @@ private:
         uboLayoutBinding.pImmutableSamplers = nullptr;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+        VkDescriptorSetLayoutBinding lightBinding{};
+        lightBinding.binding = 2;
+        lightBinding.descriptorCount = 1;
+        lightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightBinding.pImmutableSamplers = nullptr;
+        lightBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
         samplerLayoutBinding.descriptorCount = 1;
@@ -703,7 +741,7 @@ private:
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, samplerLayoutBinding, lightBinding };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -1263,12 +1301,19 @@ private:
 
     void createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        VkDeviceSize lightBufferSize = sizeof(LightUBO);
 
-        uniformBuffers.resize(swapChainImages.size());
-        uniformBuffersMemory.resize(swapChainImages.size());
+        for (size_t j = 0; j < objects.size(); j++){
+            objects[j].uniformBuffers.resize(swapChainImages.size());
+            objects[j].uniformBuffersMemory.resize(swapChainImages.size());
 
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            objects[j].lightUnifromBuffers.resize(swapChainImages.size());
+            objects[j].lightUniformBuffersMemory.resize(swapChainImages.size());
+
+            for (size_t i = 0; i < swapChainImages.size(); i++) {
+                createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, objects[j].uniformBuffers[i], objects[j].uniformBuffersMemory[i]);
+                createBuffer(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, objects[j].lightUnifromBuffers[i], objects[j].lightUniformBuffersMemory[i]);
+            }
         }
     }
 
@@ -1326,22 +1371,95 @@ private:
         throw std::runtime_error("failed to find suitable memory type");
     }
 
+    void addObjects() {
+        Object dice = Object{};
+        dice.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+
+        objects.push_back(dice);
+        objects.push_back(Object{});
+    }
+
     void createDescriptorPool() {
 
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * objects.size());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * objects.size());
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * objects.size());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());;
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * objects.size());
 
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
+        }
+    }
+
+    void createDescriptorSets() {
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
+
+
+        for (size_t j = 0; j < objects.size(); j++)
+        {
+            objects[j].descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+            if (vkAllocateDescriptorSets(device, &allocInfo, objects[j].descriptorSets.data()) != VK_SUCCESS) {
+                throw std::runtime_error("failed to allocate descriptor sets!");
+            }
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                VkDescriptorBufferInfo bufferInfo{};
+                bufferInfo.buffer = objects[j].uniformBuffers[i];
+                bufferInfo.offset = 0;
+                bufferInfo.range = sizeof(UniformBufferObject);
+
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = textureImageView;
+                imageInfo.sampler = textureSampler;
+
+                VkDescriptorBufferInfo lightBufferInfo{};
+                lightBufferInfo.buffer = objects[j].lightUnifromBuffers[i];
+                lightBufferInfo.offset = 0;
+                lightBufferInfo.range = sizeof(LightUBO);
+
+                std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+                descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[0].dstSet = objects[j].descriptorSets[i];
+                descriptorWrites[0].dstBinding = 0;
+                descriptorWrites[0].dstArrayElement = 0;
+                descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorWrites[0].descriptorCount = 1;
+                descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[1].dstSet = objects[j].descriptorSets[i];
+                descriptorWrites[1].dstBinding = 1;
+                descriptorWrites[1].dstArrayElement = 0;
+                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[1].descriptorCount = 1;
+                descriptorWrites[1].pImageInfo = &imageInfo;
+
+                descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[2].dstSet = objects[j].descriptorSets[i];
+                descriptorWrites[2].dstBinding = 2;
+                descriptorWrites[2].dstArrayElement = 0;
+                descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorWrites[2].descriptorCount = 1;
+                descriptorWrites[2].pBufferInfo = &lightBufferInfo;
+
+                vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            }
         }
     }
 
@@ -1389,8 +1507,11 @@ private:
         // Функция vkCmdBindVertexBuffers используется для привязки вершинных буферов
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &objects[i].descriptorSets[currentFrame], 0, nullptr);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        }
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -1422,7 +1543,11 @@ private:
     }
 
     void mainLoop() {
+        fillUniformVariables();
+
         while (!glfwWindowShouldClose(window)) {
+            glfwSetCursorPosCallback(window, mouse_callback);
+            processInput(window);
             glfwPollEvents();
             drawFrame();
         }
@@ -1458,7 +1583,7 @@ private:
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
         VkSubmitInfo submitInfo{};
-         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         VkSemaphore waitSemaphores[] = { imageAvailableSemaphore[currentFrame]};
         VkPipelineCacheCreateFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
@@ -1482,7 +1607,7 @@ private:
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
         VkSwapchainKHR swapChains[] = { swapChain };
-        presentInfo.swapchainCount = 1;
+        presentInfo.swapchainCount = 1u;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
@@ -1499,20 +1624,54 @@ private:
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        //манипуляция вращением камеры
+        glm::vec3 direction;
+        // glm::cos(projection);
+        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y = sin(glm::radians(pitch));
+        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(direction);
 
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        UniformBufferObject scene{};
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            scene.model = objects[i].model;
+            //scene.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            
+            scene.view = glm::lookAt(cameraPos, cameraPos + direction, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-        // Изначально GLM был разработан для OpenGL, где ось Y в пространстве отсечения имеет противоположное направление.
-        ubo.proj[1][1] *= -1;
+            scene.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+            // Изначально GLM был разработан для OpenGL, где ось Y в пространстве отсечения имеет противоположное направление.
+            scene.proj[1][1] *= -1;
+
+            // Sending uniform variable to shaders
+            void* data;
+            vkMapMemory(device, objects[i].uniformBuffersMemory[currentImage], 0, sizeof(scene), 0, &data);
+            memcpy(data, &scene, sizeof(scene));
+            vkUnmapMemory(device, objects[i].uniformBuffersMemory[currentImage]);
+        }
+
         
-        // Sending uniform variable to shaders
-        void* data;
-        vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+    }
+
+    void fillUniformVariables()
+    {
+        for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        {
+            LightUBO light{};
+            for (size_t i = 0; i < objects.size(); i++)
+            {
+                light.intensity = lightIntensity;
+                light.position = lightPosition;
+                light.color = glm::vec3(0.5f, 0.5f, 1.0f);
+
+                // Sending uniform variable to shaders
+                void* data;
+                vkMapMemory(device, objects[i].lightUniformBuffersMemory[frame], 0, sizeof(light), 0, &data);
+                memcpy(data, &light, sizeof(light));
+                vkUnmapMemory(device, objects[i].lightUniformBuffersMemory[frame]);
+            }
+        }
     }
 
     void recreateSwapChain() {
@@ -1538,52 +1697,7 @@ private:
         createDescriptorPool();
         createDescriptorSets();
         createCommandBuffers();
-    }
-
-    void createDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
-        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
-    
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
-
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
-
-            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-        }
+        fillUniformVariables();
     }
 
     void cleanup() {
@@ -1646,14 +1760,79 @@ private:
             vkDestroyImageView(device, swapChainImageViews[i], nullptr);
         }
 
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-            vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        for (size_t j = 0; j < objects.size(); j++)
+        {
+            for (size_t i = 0; i < swapChainImages.size(); i++) {
+                vkDestroyBuffer(device, objects[j].uniformBuffers[i], nullptr);
+                vkFreeMemory(device, objects[j].uniformBuffersMemory[i], nullptr);
+                vkDestroyBuffer(device, objects[j].lightUnifromBuffers[i], nullptr);
+                vkFreeMemory(device, objects[j].lightUniformBuffersMemory[i], nullptr);
+            }
         }
 
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         vkDestroySwapchainKHR(device, swapChain, nullptr);
+    }
+
+    //управление нажатиями
+    void processInput(GLFWwindow* window)
+    {
+        static auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - std::chrono::high_resolution_clock::now()).count();
+        currentTime = std::chrono::high_resolution_clock::now();
+
+        float cameraSpeed = 5.0f * deltaTime;
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            cameraSpeed *= 10.0f;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+            cameraSpeed *= 0.1f;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            cameraPos += cameraSpeed * cameraFront;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            cameraPos -= cameraSpeed * cameraFront;
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+            cameraPos += cameraSpeed * cameraUp;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+            cameraPos -= cameraSpeed * cameraUp;
+    }
+
+    static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+    {
+        static bool firstMouse = true;
+
+        if (firstMouse)
+        {
+            lastX = (float)xpos;
+            lastY = (float)ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = (float)xpos - lastX;
+        float yoffset = lastY - (float)ypos;//обратно, так как y определяется снизу вверх
+        lastX = (float)xpos;
+        lastY = (float)ypos;
+
+        const float sensitivity = 0.5f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        //налево вправо, рыскание
+        yaw += xoffset;
+        //вверх вниз, тангаж
+        pitch += yoffset;
+
+        if (pitch > 89.0f)
+            pitch = 89.0f;
+        if (pitch < -89.0f)
+            pitch = -89.0f;
     }
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
