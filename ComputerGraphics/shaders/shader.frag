@@ -50,12 +50,12 @@ void main() {
 	//  - Looking elsewhere -> < 1
 	float cosAlpha = clamp( dot( E,R ), 0,1 );
 
-    outColor = vec4(
+    outColor = vec4( light.color * (
 		// Ambient : simulates indirect lighting
-		MaterialAmbientColor +
+		MaterialAmbientColor  +
 		// Diffuse : "color" of the object
-		MaterialDiffuseColor * light.color * LightPower * cosTheta / (distance*distance) +
+		MaterialDiffuseColor * LightPower * cosTheta / (distance*distance) +
 		// Specular : reflective highlight, like a mirror
-		MaterialSpecularColor * light.color * LightPower * pow(cosAlpha,5) / (distance*distance),
+		MaterialSpecularColor * LightPower * pow(cosAlpha,5) / (distance*distance)),
 	1.0);
 }

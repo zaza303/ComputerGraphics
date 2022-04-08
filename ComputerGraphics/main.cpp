@@ -1,4 +1,4 @@
-#define GLFW_INCLUDE_VULKAN
+п»ї#define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -91,20 +91,9 @@ private:
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-
-    VkImageView textureImageView;
-    VkSampler textureSampler;
-
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
-
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
 
     std::vector<VkCommandBuffer> commandBuffers;
 
@@ -114,7 +103,7 @@ private:
     std::vector<VkFence> imagesInFlight;
 
     size_t currentFrame = 0;
-    //манипуляция вращением камеры
+    //РјР°РЅРёРїСѓР»СЏС†РёСЏ РІСЂР°С‰РµРЅРёРµРј РєР°РјРµСЂС‹
     glm::vec3 cameraPos = glm::vec3(2.0f, 0.0f, 2.0f);
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -174,15 +163,25 @@ private:
 
     struct Object {
         alignas(16) glm::mat4 model;
+
+        std::vector<Vertex> vertices;
+        std::vector<uint16_t> indices;
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
+
+        VkImage textureImage;
+        VkDeviceMemory textureImageMemory;
+        VkImageView textureImageView;
+        VkSampler textureSampler;
+        const char* imagePath;
+
         std::vector<VkDescriptorSet> descriptorSets;
         std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<VkBuffer> lightUnifromBuffers;
         std::vector<VkDeviceMemory> lightUniformBuffersMemory;
-
-        Object() {
-            model = glm::mat4(1.0f);
-        }
     };
 
     std::vector<Object> objects;
@@ -193,7 +192,7 @@ private:
         alignas(16) glm::mat4 proj;
     };
 
-    float lightIntensity = 50.0f;
+    float lightIntensity = 100.0f;
     glm::vec3 lightPosition = glm::vec3(5.0, 5.0f, 5.0f);
 
     struct LightUBO {
@@ -205,12 +204,12 @@ private:
     const float s = 1.0f;
 
     const std::vector<Vertex> vertices = {
-        {{-s, s, s}, {0.25f,0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s, s, s}, {0.5f, 0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, 0.0f,  1.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, 0.0f,  1.0f}}, // front
-        {{ s, s,-s}, {0.25f,0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s, s,-s}, {0.5f, 0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {0.0f, 0.0f, -1.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, {0.0f, 0.0f, -1.0f}}, // back
-        {{-s, s,-s}, {0.25f,1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s,-s}, {0.5f, 1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s, s}, {0.5f, 0.75f}, {0.0f, 1.0f,  0.0f}}, {{-s, s, s}, {0.25f,0.75f}, {0.0f, 1.0f,  0.0f}}, // top
-        {{ s,-s,-s}, {0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s,-s}, {0.25f,0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, -1.0f, 0.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, -1.0f, 0.0f}}, // bottom
-        {{-s, s,-s}, {0.5f, 1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s, s, s}, {0.75f,1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s, s}, {0.75f,0.75f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {-1.0f, 0.0f, 0.0f}}, // left
-        {{ s, s, s}, {0.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s, s,-s}, {0.25f,1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s, s}, {0.0f, 0.75f}, { 1.0f, 0.0f, 0.0f}}, // right
+        {{-s, s, s}, {0.25f,0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s, s, s}, {0.5f, 0.0f}, {0.0f, 0.0f,  1.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, 0.0f,  1.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, 0.0f,  1.0f}}, // front  5
+        {{ s, s,-s}, {0.25f,0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s, s,-s}, {0.5f, 0.5f}, {0.0f, 0.0f, -1.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {0.0f, 0.0f, -1.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, {0.0f, 0.0f, -1.0f}}, // back   2
+        {{-s, s,-s}, {0.25f,1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s,-s}, {0.5f, 1.0f}, {0.0f, 1.0f,  0.0f}}, {{ s, s, s}, {0.5f, 0.75f}, {0.0f, 1.0f,  0.0f}}, {{-s, s, s}, {0.25f,0.75f}, {0.0f, 1.0f,  0.0f}}, // top    6
+        {{ s,-s,-s}, {0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s,-s}, {0.25f,0.5f}, {0.0f, -1.0f, 0.0f}}, {{-s,-s, s}, {0.25f,0.25f}, {0.0f, -1.0f, 0.0f}}, {{ s,-s, s}, {0.5f, 0.25f}, {0.0f, -1.0f, 0.0f}}, // bottom 1
+        {{-s, s,-s}, {0.5f, 1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s, s, s}, {0.75f,1.0f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s, s}, {0.75f,0.75f}, {-1.0f, 0.0f, 0.0f}}, {{-s,-s,-s}, {0.5f, 0.75f}, {-1.0f, 0.0f, 0.0f}}, // left   3
+        {{ s, s, s}, {0.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s, s,-s}, {0.25f,1.0f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s,-s}, {0.25f,0.75f}, { 1.0f, 0.0f, 0.0f}}, {{ s,-s, s}, {0.0f, 0.75f}, { 1.0f, 0.0f, 0.0f}}, // right  4
     };
 
     const std::vector<uint16_t> indices = {
@@ -220,6 +219,17 @@ private:
         12,15,13, 13,15,14, // bottom
         16,19,17, 17,19,18, // left
         20,23,21, 21,23,22  // right
+    };
+
+    float d = 10.f;
+
+    const std::vector<Vertex> planeVertices = {
+        {{-d, 0,-d}, {0.0f,0.0f}, {0.0f, 1.0f,  0.0f}}, {{ d, 0,-d}, {1.0f,0.0f}, {0.0f, 1.0f,  0.0f}}, 
+        {{ d, 0, d}, {1.f, 1.0f}, {0.0f, 1.0f,  0.0f}}, {{-d, 0, d}, {0.0f,1.0f}, {0.0f, 1.0f,  0.0f}},
+    };
+
+    const std::vector<uint16_t> planeIndices = {
+        0, 3, 1,  1, 3, 2
     };
 
     void initWindow() {
@@ -243,12 +253,12 @@ private:
         createDepthResources();
         createFramebuffers();
         createCommandPool();
+        addObjects();
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
         createVertexBuffer();
         createIndexBuffer();
-        addObjects();
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -293,14 +303,15 @@ private:
         }
 
         #pragma region list of extensions
-        /*uint32_t extensionCount = 0;
+        std::vector<VkExtensionProperties> extensions2;
+        uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+        extensions2.resize(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions2.data());
         std::cout << "Available extensions:\n";
-        for (const auto& extension : extensions) {
+        for (const auto& extension : extensions2) {
             std::cout << '\t' << extension.extensionName << '\n';
-        }*/
+        }
         #pragma endregion
     }
 
@@ -523,9 +534,9 @@ private:
 
         std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-        for (const auto& extension : availableExtensions) {
+        /*for (const auto& extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
-        }
+        }*/
 
         return requiredExtensions.empty();
     }
@@ -997,7 +1008,7 @@ private:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
         vkEndCommandBuffer(commandBuffer);
 
-        // В отличие от команд рисования, копирование можно провести здесь и сейчас, необходимо лишь дождаться его завершения
+        // Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ РєРѕРјР°РЅРґ СЂРёСЃРѕРІР°РЅРёСЏ, РєРѕРїРёСЂРѕРІР°РЅРёРµ РјРѕР¶РЅРѕ РїСЂРѕРІРµСЃС‚Рё Р·РґРµСЃСЊ Рё СЃРµР№С‡Р°СЃ, РЅРµРѕР±С…РѕРґРёРјРѕ Р»РёС€СЊ РґРѕР¶РґР°С‚СЊСЃСЏ РµРіРѕ Р·Р°РІРµСЂС€РµРЅРёСЏ
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
@@ -1043,37 +1054,40 @@ private:
     }
 
     void createTextureImage() {
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("textures/dice.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            int texWidth, texHeight, texChannels;
+            stbi_uc* pixels = stbi_load(objects[i].imagePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-        if (!pixels) {
-            throw std::runtime_error("failed to load texture image!");
-        }
+            if (!pixels) {
+                throw std::runtime_error("failed to load texture image!");
+            }
 
-        createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+            createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+            void* data;
+            vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
             memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(device, stagingBufferMemory);
+            vkUnmapMemory(device, stagingBufferMemory);
 
-        stbi_image_free(pixels);
+            stbi_image_free(pixels);
 
-        createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+            createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, objects[i].textureImage, objects[i].textureImageMemory);
 
-        // передаем текстуру в VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL (делаем, чтобы был доступ из конвеера(следующая функция)) 
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        // создаем буфер с изображением, чтобы потом передать его
-        copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+            // РїРµСЂРµРґР°РµРј С‚РµРєСЃС‚СѓСЂСѓ РІ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL (РґРµР»Р°РµРј, С‡С‚РѕР±С‹ Р±С‹Р» РґРѕСЃС‚СѓРї РёР· РєРѕРЅРІРµРµСЂР°(СЃР»РµРґСѓСЋС‰Р°СЏ С„СѓРЅРєС†РёСЏ)) 
+            transitionImageLayout(objects[i].textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            // СЃРѕР·РґР°РµРј Р±СѓС„РµСЂ СЃ РёР·РѕР±СЂР°Р¶РµРЅРёРµРј, С‡С‚РѕР±С‹ РїРѕС‚РѕРј РїРµСЂРµРґР°С‚СЊ РµРіРѕ
+            copyBufferToImage(stagingBuffer, objects[i].textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
-        // отдаем доступ для шейдера
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
+            // РѕС‚РґР°РµРј РґРѕСЃС‚СѓРї РґР»СЏ С€РµР№РґРµСЂР°
+            transitionImageLayout(objects[i].textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            vkDestroyBuffer(device, stagingBuffer, nullptr);
+            vkFreeMemory(device, stagingBufferMemory, nullptr);
+        }
     }
 
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
@@ -1206,7 +1220,10 @@ private:
     }
 
     void createTextureImageView() {
-        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            objects[i].textureImageView = createImageView(objects[i].textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        }
     }
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
@@ -1252,51 +1269,57 @@ private:
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
-
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            if (vkCreateSampler(device, &samplerInfo, nullptr, &objects[i].textureSampler) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create texture sampler!");
+            }
         }
     }
 
     void createVertexBuffer() {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-        
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        for (size_t i = 0; i < objects.size(); i++) {
+            VkDeviceSize bufferSize = sizeof(objects[i].vertices[0]) * objects[i].vertices.size();
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, stagingBuffer, stagingBufferMemory);
+            VkBuffer stagingBuffer;
+            VkDeviceMemory stagingBufferMemory;
 
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, stagingBuffer, stagingBufferMemory);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+            void* data;
+            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+            memcpy(data, objects[i].vertices.data(), (size_t)bufferSize);
+            vkUnmapMemory(device, stagingBufferMemory);
 
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, objects[i].vertexBuffer, objects[i].vertexBufferMemory);
 
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
+            copyBuffer(stagingBuffer, objects[i].vertexBuffer, bufferSize);
+
+            vkDestroyBuffer(device, stagingBuffer, nullptr);
+            vkFreeMemory(device, stagingBufferMemory, nullptr);
+        }
     }
 
     void createIndexBuffer() {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+        for (size_t i = 0; i < objects.size(); i++) {
+            VkDeviceSize bufferSize = sizeof(objects[i].indices[0]) * objects[i].indices.size();
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+            VkBuffer stagingBuffer;
+            VkDeviceMemory stagingBufferMemory;
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
+            void* data;
+            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+            memcpy(data, objects[i].indices.data(), (size_t)bufferSize);
+            vkUnmapMemory(device, stagingBufferMemory);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, objects[i].indexBuffer, objects[i].indexBufferMemory);
 
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+            copyBuffer(stagingBuffer, objects[i].indexBuffer, bufferSize);
 
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
+            vkDestroyBuffer(device, stagingBuffer, nullptr);
+            vkFreeMemory(device, stagingBufferMemory, nullptr);
+        }
     }
 
     void createUniformBuffers() {
@@ -1336,7 +1359,7 @@ private:
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        // Использовать VK_MEMORY_PROPERTY_HOST_COHERENT_BIT для согласования памяти хоста с памятью видеокарты
+        // РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ VK_MEMORY_PROPERTY_HOST_COHERENT_BIT РґР»СЏ СЃРѕРіР»Р°СЃРѕРІР°РЅРёСЏ РїР°РјСЏС‚Рё С…РѕСЃС‚Р° СЃ РїР°РјСЏС‚СЊСЋ РІРёРґРµРѕРєР°СЂС‚С‹
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
         // allocating memory
@@ -1374,9 +1397,25 @@ private:
     void addObjects() {
         Object dice = Object{};
         dice.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 2.0f));
+        dice.vertices = vertices;
+        dice.indices = indices;
+        dice.imagePath = "textures/dice.png";
+
+        Object dice2 = Object{};
+        dice2.model = glm::mat4(1.0f);
+        dice2.vertices = vertices;
+        dice2.indices = indices;
+        dice2.imagePath = "textures/dice.png";
+
+        Object plane = Object{};
+        plane.model = glm::translate(glm::mat4(1.0f), glm::vec3(.0f, -6.0f, .0f));
+        plane.vertices = planeVertices;
+        plane.indices = planeIndices;
+        plane.imagePath = "textures/plane.jpg";
 
         objects.push_back(dice);
-        objects.push_back(Object{});
+        objects.push_back(dice2);
+        objects.push_back(plane);
     }
 
     void createDescriptorPool() {
@@ -1424,8 +1463,8 @@ private:
 
                 VkDescriptorImageInfo imageInfo{};
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.imageView = textureImageView;
-                imageInfo.sampler = textureSampler;
+                imageInfo.imageView = objects[j].textureImageView;
+                imageInfo.sampler = objects[j].textureSampler;
 
                 VkDescriptorBufferInfo lightBufferInfo{};
                 lightBufferInfo.buffer = objects[j].lightUnifromBuffers[i];
@@ -1502,15 +1541,15 @@ private:
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        VkBuffer vertexBuffers[] = { vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
-        // Функция vkCmdBindVertexBuffers используется для привязки вершинных буферов
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
         for (size_t i = 0; i < objects.size(); i++)
         {
+            VkBuffer vertexBuffers[] = { objects[i].vertexBuffer };
+            VkDeviceSize offsets[] = { 0 };
+            // Р¤СѓРЅРєС†РёСЏ vkCmdBindVertexBuffers РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РїСЂРёРІСЏР·РєРё РІРµСЂС€РёРЅРЅС‹С… Р±СѓС„РµСЂРѕРІ
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, objects[i].indexBuffer, 0, VK_INDEX_TYPE_UINT16);
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &objects[i].descriptorSets[currentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(objects[i].indices.size()), 1, 0, 0, 0);
         }
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1624,9 +1663,8 @@ private:
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-        //манипуляция вращением камеры
+        //РјР°РЅРёРїСѓР»СЏС†РёСЏ РІСЂР°С‰РµРЅРёРµРј РєР°РјРµСЂС‹
         glm::vec3 direction;
-        // glm::cos(projection);
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction.y = sin(glm::radians(pitch));
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -1635,13 +1673,57 @@ private:
         UniformBufferObject scene{};
         for (size_t i = 0; i < objects.size(); i++)
         {
+            float angleX;
             scene.model = objects[i].model;
-            //scene.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            static bool isStopped[] = {false, false};
+            if (i < 2 && !isStopped[i]) {
+                scene.model = glm::translate(objects[i].model, time * glm::vec3(0.0f, -1.0f, 0.0f));
+                scene.model = glm::rotate(scene.model, time * glm::radians(90.0f), glm::vec3(0.3f, 1.0f, 0.6f));
+                if (scene.model[3][1] <= -5.0f)
+                {
+                    scene.model[3][1] = -5.0f;
+                    objects[i].model = scene.model;
+                    isStopped[i] = true;
+                    
+                    for (size_t j = 0; j < objects[i].vertices.size() / 4; j++)
+                    {
+                        auto a = glm::vec4(objects[i].vertices[j * 4].normals, 1.0f) * scene.model - glm::vec4(planeVertices[0].normals, 1.0f);
+                        if (a.x < 0 && a.y < 0 && a.z < 0)
+                        {
+                            switch (j)
+                            {
+                            case 0:
+                                objects[i].model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                                break;
+                            case 1:
+                                objects[i].model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                                break;
+                            case 2:
+                                objects[i].model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                                break;
+                            case 3:
+                                objects[i].model = glm::mat4(1.0f);
+                                break;
+                            case 4:
+                                objects[i].model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                                break;
+                            case 5:
+                                objects[i].model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                                break;
+                            default:
+                                break;
+                            }
+                            objects[i].model[3][1] = -5.0f;
+                            break;
+                        }
+                    }
+                }
+            }
             
-            scene.view = glm::lookAt(cameraPos, cameraPos + direction, glm::vec3(0.0f, 1.0f, 0.0f));
+            scene.view = glm::lookAt(cameraPos, cameraPos + cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
 
-            scene.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-            // Изначально GLM был разработан для OpenGL, где ось Y в пространстве отсечения имеет противоположное направление.
+            scene.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
+            // РР·РЅР°С‡Р°Р»СЊРЅРѕ GLM Р±С‹Р» СЂР°Р·СЂР°Р±РѕС‚Р°РЅ РґР»СЏ OpenGL, РіРґРµ РѕСЃСЊ Y РІ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµ РѕС‚СЃРµС‡РµРЅРёСЏ РёРјРµРµС‚ РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅРѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ.
             scene.proj[1][1] *= -1;
 
             // Sending uniform variable to shaders
@@ -1651,7 +1733,21 @@ private:
             vkUnmapMemory(device, objects[i].uniformBuffersMemory[currentImage]);
         }
 
-        
+       /* long millis = System.currentTimeMillis();
+        int cycle = 3600;
+        double deg = millis % cycle * 360d / cycle;
+
+        if (Main.falling) {
+            dy1 = dy1 - 0.02;
+            if (dy1 <= -1.35d) {
+                dy1 = -1.35d;
+                side = (int)Math.round(deg / 90);
+                System.out.println(side);
+
+                Main.falling = !Main.falling;
+            }
+        } else if (dy1 == -1.35)
+            deg = side * 90;*/
     }
 
     void fillUniformVariables()
@@ -1663,7 +1759,7 @@ private:
             {
                 light.intensity = lightIntensity;
                 light.position = lightPosition;
-                light.color = glm::vec3(0.5f, 0.5f, 1.0f);
+                light.color = glm::vec3(0.8f, 0.7f, 0.2f);
 
                 // Sending uniform variable to shaders
                 void* data;
@@ -1702,20 +1798,25 @@ private:
 
     void cleanup() {
         cleanipSwapChain();
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            vkDestroySampler(device, objects[i].textureSampler, nullptr);
+            vkDestroyImageView(device, objects[i].textureImageView, nullptr);
 
-        vkDestroySampler(device, textureSampler, nullptr);
-        vkDestroyImageView(device, textureImageView, nullptr);
-
-        vkDestroyImage(device, textureImage, nullptr);
-        vkFreeMemory(device, textureImageMemory, nullptr);
+            vkDestroyImage(device, objects[i].textureImage, nullptr);
+            vkFreeMemory(device, objects[i].textureImageMemory, nullptr);
+        }
 
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        vkFreeMemory(device, indexBufferMemory, nullptr);
+        for (size_t i = 0; i < objects.size(); i++)
+        {
+            vkDestroyBuffer(device, objects[i].indexBuffer, nullptr);
+            vkFreeMemory(device, objects[i].indexBufferMemory, nullptr);
 
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
+            vkDestroyBuffer(device, objects[i].vertexBuffer, nullptr);
+            vkFreeMemory(device, objects[i].vertexBufferMemory, nullptr);
+        }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
@@ -1775,7 +1876,7 @@ private:
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 
-    //управление нажатиями
+    //СѓРїСЂР°РІР»РµРЅРёРµ РЅР°Р¶Р°С‚РёСЏРјРё
     void processInput(GLFWwindow* window)
     {
         static auto currentTime = std::chrono::high_resolution_clock::now();
@@ -1816,7 +1917,7 @@ private:
         }
 
         float xoffset = (float)xpos - lastX;
-        float yoffset = lastY - (float)ypos;//обратно, так как y определяется снизу вверх
+        float yoffset = lastY - (float)ypos;//РѕР±СЂР°С‚РЅРѕ, С‚Р°Рє РєР°Рє y РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ СЃРЅРёР·Сѓ РІРІРµСЂС…
         lastX = (float)xpos;
         lastY = (float)ypos;
 
@@ -1824,9 +1925,9 @@ private:
         xoffset *= sensitivity;
         yoffset *= sensitivity;
 
-        //налево вправо, рыскание
+        //РЅР°Р»РµРІРѕ РІРїСЂР°РІРѕ, СЂС‹СЃРєР°РЅРёРµ
         yaw += xoffset;
-        //вверх вниз, тангаж
+        //РІРІРµСЂС… РІРЅРёР·, С‚Р°РЅРіР°Р¶
         pitch += yoffset;
 
         if (pitch > 89.0f)
@@ -1842,7 +1943,7 @@ private:
         void* pUserData
     ) {
 
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        printf("\033[22;36mvalidation layer\033[0m: \033[22;33m%s\033[0m\n", pCallbackData->pMessage);
 
         return VK_FALSE;
     }
